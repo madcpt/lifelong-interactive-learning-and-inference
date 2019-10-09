@@ -1,5 +1,6 @@
 import math
 import random
+import sys
 import time
 
 import torch
@@ -8,6 +9,9 @@ from torch.nn import init
 
 from utils.DataLoader import DataLoader
 from utils.draw import draw
+
+sys.path.append('..')
+
 
 
 class TransE(nn.Module):
@@ -21,11 +25,12 @@ class TransE(nn.Module):
         self.entity_embedding = nn.Embedding(entity_size, embed_dim).to(device)
         self.rel_embedding = nn.Embedding(rel_size, embed_dim).to(device)
 
-    def normalize_layer(self):
+    def normalize_layer(self, init = False):
         w1 = self.entity_embedding.weight.detach()
         self.entity_embedding.weight.data = w1/w1.norm(dim=-1, keepdim=True)
-        w2 = self.rel_embedding.weight.detach()
-        self.rel_embedding.weight.data = w2/w2.norm(dim=-1, keepdim=True)
+        if init:
+            w2 = self.rel_embedding.weight.detach()
+            self.rel_embedding.weight.data = w2/w2.norm(dim=-1, keepdim=True)
 
     def distance(self, h,r,t,ord):
         return (h + r - t).norm(p=ord,dim=-1,keepdim=True)
@@ -90,7 +95,7 @@ if __name__ == "__main__":
         start = time.time()
         l = 0.0
         cnt = 0
-        model.normalize_layer()
+        model.normalize_layer(True if epoch == 0 else False)
         dataiter = loader.get_dataiter_('train', batch_size, True)
         for h,r,t,h_hat,t_hat in dataiter:
             if random.random() < 0.5:
