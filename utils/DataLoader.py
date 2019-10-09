@@ -1,10 +1,12 @@
 import collections
 
+import torch
 from torch.utils import data as Data
 
 
 class DataLoader(object):
-    def __init__(self, dataset='WN18', *args):
+    def __init__(self, device, dataset='WN18', *args):
+        self.device = device
         self.train_path = './data/{}/train.txt'.format(dataset)
         self.valid_path = './data/{}/valid.txt'.format(dataset)
         self.test_path = './data/{}/test.txt'.format(dataset)
@@ -146,12 +148,28 @@ class DataLoader(object):
             return []
         else:
             return self.tail_relation_to_head[r][t]
-        
-        
-        
+    
+    def get_dataiter(self, mode='train', batch_size=10, shuffle=False, num_workers=0):
+        if mode=='train':       
+            dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.train_triple], device=self.device), 
+                                        torch.tensor([i[1] for i in self.train_triple], device=self.device),
+                                        torch.tensor([i[2] for i in self.train_triple], device=self.device))
+            data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+        if mode=='val':
+            dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.valid_triple], device=self.device), 
+                                        torch.tensor([i[1] for i in self.valid_triple], device=self.device),
+                                        torch.tensor([i[2] for i in self.valid_triple], device=self.device))
+            data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+        if mode=='test':
+            dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.test_triple], device=self.device), 
+                                        torch.tensor([i[1] for i in self.test_triple], device=self.device),
+                                        torch.tensor([i[2] for i in self.test_triple], device=self.device))
+            data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+        return data_iter
 
 if __name__ == "__main__":
-    loader = DataLoader(dataset='WN18')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    loader = DataLoader(device, dataset='WN18')
     loader.load_all()
     loader.preprocess(1, init=False)
     loader.setup_sampling_map()
