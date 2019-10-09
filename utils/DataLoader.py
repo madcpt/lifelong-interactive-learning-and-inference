@@ -1,13 +1,15 @@
 import collections
 
+from torch.utils import data as Data
+
 
 class DataLoader(object):
     def __init__(self, dataset='WN18', *args):
         self.train_path = './data/{}/train.txt'.format(dataset)
         self.valid_path = './data/{}/valid.txt'.format(dataset)
         self.test_path = './data/{}/test.txt'.format(dataset)
-        self.entity_map_path = './data/{}/entity_map.db'.format(dataset)
-        self.relation_map_path = './data/{}/relation_map.db'.format(dataset)
+        self.entity_map_path = './data/{}/entity.map'.format(dataset)
+        self.relation_map_path = './data/{}/relation.map'.format(dataset)
         self.train_list = []
         self.valid_list = []
         self.test_list = []
@@ -18,8 +20,8 @@ class DataLoader(object):
         self.train_triple = []
         self.valid_triple = []
         self.test_triple = []
-        self.head_relation_to_tail = []
-        self.tail_relation_to_head = []
+        self.head_relation_to_tail = [] # l[r][h]=t
+        self.tail_relation_to_head = [] # l[r][t]=h
         self.train_triple_size = 0
         self.valid_triple_size = 0
         self.test_triple_size = 0
@@ -45,23 +47,6 @@ class DataLoader(object):
         counter = collections.Counter([tk for tk in raw_dataset])
         counter = dict(filter(lambda x: x[1] >= count, counter.items()))
         return counter
-
-    # def setup_sampling_map(self):
-    #     print('Setting up sampling map')
-    #     self.head_relation_to_tail = [[None]*self.relation_size]*self.entity_size
-    #     self.tail_relation_to_head = [[None]*self.relation_size]*self.entity_size
-    #     print('Adding sampling dataset')
-
-    #     for (head, relation, tail) in self.train_triple:
-    #         if self.head_relation_to_tail[head][relation] != None:
-    #             self.head_relation_to_tail[head][relation].append(tail)
-    #         else:
-    #             self.head_relation_to_tail[head][relation] = [tail]
-    #         if self.tail_relation_to_head[tail][relation] != None:
-    #             self.tail_relation_to_head[tail][relation].append(head)
-    #         else:
-    #             self.tail_relation_to_head[tail][relation] = [head]
-    #     print('Finished setting up sampling map')
     
     def setup_sampling_map(self):
         print('Setting up sampling map')
@@ -78,8 +63,6 @@ class DataLoader(object):
                 self.tail_relation_to_head[relation][tail].append(head)
             else:
                 self.tail_relation_to_head[relation][tail] = [head]
-
-
         print('Finished setting up sampling map')
 
     def preprocess(self, filter_occurance=5, init=False):
@@ -92,7 +75,7 @@ class DataLoader(object):
             (occurring in either head or tail is qualified).
         init : bool, default False
             Whether to recreate entity2idx map and relation2idx map.
-           '''
+        '''
         all_list = [*self.train_list,*self.valid_list,*self.test_list]
         entity_list = []
         relation_list = []
@@ -170,8 +153,9 @@ class DataLoader(object):
 if __name__ == "__main__":
     loader = DataLoader(dataset='WN18')
     loader.load_all()
-    loader.preprocess(1, True)
+    loader.preprocess(1, init=False)
     loader.setup_sampling_map()
+
     import time
     start = time.time()
     for i in range(10000):
