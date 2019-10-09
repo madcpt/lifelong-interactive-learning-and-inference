@@ -150,6 +150,7 @@ class DataLoader(object):
             return self.tail_relation_to_head[r][t]
     
     def get_dataiter(self, mode='train', batch_size=10, shuffle=False, num_workers=0):
+        '''deprecated'''
         if mode=='train':       
             dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.train_triple], device=self.device), 
                                         torch.tensor([i[1] for i in self.train_triple], device=self.device),
@@ -166,7 +167,39 @@ class DataLoader(object):
                                         torch.tensor([i[2] for i in self.test_triple], device=self.device))
             data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
         return data_iter
+    
+    def get_dataiter_(self, mode='train', batch_size=10, shuffle=False, num_workers=0):
+        if mode == 'train':
+            dataset_h = torch.tensor([i[0] for i in self.train_triple], device=self.device)
+            dataset_r = torch.tensor([i[1] for i in self.train_triple], device=self.device)
+            dataset_t = torch.tensor([i[2] for i in self.train_triple], device=self.device)
+            dataset_h_hat = torch.randint_like(dataset_h, high=self.entity_size, device=self.device)
+            dataset_t_hat = torch.randint_like(dataset_t, high=self.entity_size, device=self.device)
+            batch_num = self.train_triple_size // batch_size + 1
+            for i in range(batch_num):
+                yield dataset_h[i*batch_size : i*batch_size+batch_size], \
+                      dataset_r[i*batch_size : i*batch_size+batch_size], \
+                      dataset_t[i*batch_size : i*batch_size+batch_size], \
+                      dataset_h_hat[i*batch_size : i*batch_size+batch_size], \
+                      dataset_t_hat[i*batch_size : i*batch_size+batch_size]
+        if mode == 'valid':
+            dataset_h = torch.tensor([i[0] for i in self.valid_triple], device=self.device)
+            dataset_r = torch.tensor([i[1] for i in self.valid_triple], device=self.device)
+            dataset_t = torch.tensor([i[2] for i in self.valid_triple], device=self.device)
+            for i in range(self.valid_triple_size):
+                yield dataset_h[i], \
+                      dataset_r[i], \
+                      dataset_t[i]
+        if mode == 'test':
+            dataset_h = torch.tensor([i[0] for i in self.test_triple], device=self.device)
+            dataset_r = torch.tensor([i[1] for i in self.test_triple], device=self.device)
+            dataset_t = torch.tensor([i[2] for i in self.test_triple], device=self.device)
+            for i in range(self.test_triple_size):
+                yield dataset_h[i], \
+                      dataset_r[i], \
+                      dataset_t[i]
 
+    
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     loader = DataLoader(device, dataset='WN18')
