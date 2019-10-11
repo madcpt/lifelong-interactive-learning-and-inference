@@ -4,6 +4,7 @@ import sys
 import time
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.nn import init
 
@@ -13,10 +14,9 @@ from utils.draw import draw
 sys.path.append('..')
 
 
-
 class TransE(nn.Module):
     """TransE Model"""
-    def __init__(self, device, entity_size, rel_size, embed_dim, *args):
+    def __init__(self, device, entity_size, rel_size, embed_dim, dataset='WN18', margin=2, *args):
         super(TransE, self).__init__()
         self.device = device
         self.entity_size = entity_size
@@ -24,6 +24,9 @@ class TransE(nn.Module):
         self.embed_dim = embed_dim
         self.entity_embedding = nn.Embedding(entity_size, embed_dim).to(device)
         self.rel_embedding = nn.Embedding(rel_size, embed_dim).to(device)
+        self.distfn = nn.PairwiseDistance(1)
+        self.model_name = dataset+'_'+str(self.embed_dim)
+        self.margin = margin
 
     def normalize_layer(self, init = False):
         w1 = self.entity_embedding.weight.detach()
@@ -34,6 +37,7 @@ class TransE(nn.Module):
 
     def distance(self, h,r,t,ord):
         return (h + r - t).norm(p=ord,dim=-1,keepdim=True)
+        # return self.distfn(h+r, t)
 
     def forward(self, heads, relations, tails, h_hat, t_hat):
         # entities: (batch_size)
@@ -49,11 +53,12 @@ class TransE(nn.Module):
         t_hat_embed = self.entity_embedding(t_hat)
         d1 = self.distance(h_embed, r_embed, t_embed, 1)
         d2 = self.distance(h_hat_embed, r_embed, t_hat_embed, 1)
-        l = (2 + d1 - d2).clamp(min=0)
+        # l = (2 + d1 - d2)
+        l = (self.margin + d1 - d2).clamp_min(0)
         return l
     
     def evaluate(self, h, r, t):
-        h_embed = self.entity_embedding(t)
+        h_embed = self.entity_embedding(h)
         r_embed = self.rel_embedding(r)
         target_embed = self.entity_embedding(t)
         t_embed = self.entity_embedding.weight.data.detach()
@@ -62,61 +67,10 @@ class TransE(nn.Module):
         result = (out < target).sum()
         return result.item()
 
-
-
-if __name__ == "__main__":
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def save_net(self, save_path='WN18_30'):
+        torch.save(self.state_dict(), save_path+'.params')
+        print('model saved')
     
-    loader = DataLoader(device, dataset='WN18')
-    loader.load_all()
-    loader.preprocess(1, init=False)
-    loader.setup_sampling_map()
-    
-    entity_dim = 20
-
-    model = TransE(device, entity_size=loader.entity_size, 
-                    rel_size=loader.relation_size, embed_dim=entity_dim)
-
-    init.uniform_(model.entity_embedding.weight,-6.0/math.sqrt(entity_dim), 6.0/math.sqrt(entity_dim))
-    init.uniform_(model.rel_embedding.weight,-6.0/math.sqrt(entity_dim), 6.0/math.sqrt(entity_dim))
-    
-    # for params in model.parameters():
-    #     init.normal_(params, mean=0, std=1)
-
-    loss = nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-
-    batch_size = 500
-    epoch_num = 30
-
-    display_l = []
-
-    for epoch in range(epoch_num):
-        start = time.time()
-        l = 0.0
-        cnt = 0
-        model.normalize_layer(True if epoch == 0 else False)
-        dataiter = loader.get_dataiter_('train', batch_size, True)
-        for h,r,t,h_hat,t_hat in dataiter:
-            if random.random() < 0.5:
-                d = model(h,r,t,h_hat,t)
-            else:
-                d = model(h,r,t,h,t_hat)
-            cnt += d.shape[0]
-            l += loss(d, torch.zeros_like(d))*d.shape[0]
-        # print(time.time()-start)
-        l.backward()
-        optimizer.step()
-        display_l.append(l.item()/cnt)
-        print("{} time: {} : {}".format(epoch, time.time()-start, l.item()))
-        draw(display_l)
-
-    valid = []
-    for h,r,t in loader.get_dataiter_('valid', 1, True):
-        valid.append(model.evaluate(h,r,t))
-    print(sum(valid)/len(valid))
-
-    test = []
-    for h,r,t in loader.get_dataiter_('test', 1, True):
-        test.append(model.evaluate(h,r,t))
-    print(sum(test)/len(test))
+    def load_net(self, load_path='WN18_30'):
+        self.load_state_dict(torch.load(load_path+'.params', map_location=self.device))
+        print('model loaded')

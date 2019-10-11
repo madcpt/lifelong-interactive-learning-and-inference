@@ -202,7 +202,7 @@ class DataLoader(object):
     
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    loader = DataLoader(device, dataset='WN18')
+    loader = DataLoader(device, dataset='FB15k')
     loader.load_all()
     loader.preprocess(1, init=False)
     loader.setup_sampling_map()
