@@ -105,6 +105,9 @@ class DataLoader(object):
             print('Reading {}'.format(self.relation_map_path))
             with open(self.relation_map_path, 'r') as f:
                 self.relation_map = eval(f.read())
+        self.entity_reverse_map = dict(zip(self.entity_map.values(), self.entity_map.keys()))
+        self.relation_reverse_map = dict(zip(self.relation_map.values(), self.relation_map.keys()))
+        
         self.entity_size = len(self.entity_map.keys())
         self.relation_size = len(self.relation_map.keys())
         
@@ -126,12 +129,16 @@ class DataLoader(object):
         self.train_triple_size = len(self.train_triple)
         self.valid_triple_size = len(self.valid_triple)
         self.test_triple_size = len(self.test_triple)
-    
+        self.all_triple = [*self.train_triple, *self.valid_triple, *self.test_triple]
+
     def del_raw_data(self):
         del self.train_list
         del self.valid_list
         del self.test_list
             
+    def slow_check(self, triple):
+        return triple in self.all_triple
+
     def check_with_h_r(self, h, r, t):
         if self.head_relation_to_tail[r][h] != None and t in self.head_relation_to_tail[r][h]:
             return True

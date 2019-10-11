@@ -13,6 +13,9 @@ class DataSampler(DataLoader):
         self.ukn_train_triple = []
         self.ukn_valid_triple = []
         self.ukn_test_triple = []
+        self.ukn_train_triple_size = 0
+        self.ukn_valid_triple_size = 0
+        self.ukn_test_triple_size = 0
         pass
 
     def set_ukn(self, ukn_rel:int):
@@ -28,6 +31,7 @@ class DataSampler(DataLoader):
                 triple_tmp.append(triple)
         self.train_triple = triple_tmp
         self.train_triple_size = len(self.train_triple)
+        self.ukn_train_triple_size = len(self.ukn_train_triple)
         
         self.ukn_valid_triple = []
         triple_tmp = []
@@ -38,6 +42,7 @@ class DataSampler(DataLoader):
                 triple_tmp.append(triple)
         self.valid_triple = triple_tmp
         self.valid_triple_size = len(self.valid_triple)
+        self.ukn_valid_triple_size = len(self.ukn_valid_triple)
         
         self.ukn_test_triple = []
         triple_tmp = []
@@ -48,6 +53,7 @@ class DataSampler(DataLoader):
                 triple_tmp.append(triple)
         self.test_triple = triple_tmp
         self.test_triple_size = len(self.test_triple)
+        self.ukn_test_triple_size = len(self.ukn_test_triple)
 
     def get_ukn_dataiter_(self, mode='train', batch_size=10, shuffle=False, num_workers=0):
         if mode == 'train':
@@ -56,7 +62,7 @@ class DataSampler(DataLoader):
             dataset_t = torch.tensor([i[2] for i in self.ukn_train_triple], device=self.device)
             dataset_h_hat = torch.randint_like(dataset_h, high=self.entity_size, device=self.device)
             dataset_t_hat = torch.randint_like(dataset_t, high=self.entity_size, device=self.device)
-            batch_num = self.train_triple_size // batch_size + 1
+            batch_num = self.ukn_train_triple_size // batch_size + 1
             for i in range(batch_num):
                 yield dataset_h[i*batch_size : i*batch_size+batch_size], \
                       dataset_r[i*batch_size : i*batch_size+batch_size], \
@@ -64,18 +70,18 @@ class DataSampler(DataLoader):
                       dataset_h_hat[i*batch_size : i*batch_size+batch_size], \
                       dataset_t_hat[i*batch_size : i*batch_size+batch_size]
         if mode == 'valid':
-            dataset_h = torch.tensor([i[0] for i in self.valid_triple], device=self.device)
-            dataset_r = torch.tensor([i[1] for i in self.valid_triple], device=self.device)
-            dataset_t = torch.tensor([i[2] for i in self.valid_triple], device=self.device)
-            for i in range(self.valid_triple_size):
+            dataset_h = torch.tensor([i[0] for i in self.ukn_valid_triple], device=self.device)
+            dataset_r = torch.tensor([i[1] for i in self.ukn_valid_triple], device=self.device)
+            dataset_t = torch.tensor([i[2] for i in self.ukn_valid_triple], device=self.device)
+            for i in range(self.ukn_valid_triple_size):
                 yield dataset_h[i], \
                       dataset_r[i], \
                       dataset_t[i]
         if mode == 'test':
-            dataset_h = torch.tensor([i[0] for i in self.test_triple], device=self.device)
-            dataset_r = torch.tensor([i[1] for i in self.test_triple], device=self.device)
-            dataset_t = torch.tensor([i[2] for i in self.test_triple], device=self.device)
-            for i in range(self.test_triple_size):
+            dataset_h = torch.tensor([i[0] for i in self.ukn_test_triple], device=self.device)
+            dataset_r = torch.tensor([i[1] for i in self.ukn_test_triple], device=self.device)
+            dataset_t = torch.tensor([i[2] for i in self.ukn_test_triple], device=self.device)
+            for i in range(self.ukn_test_triple_size):
                 yield dataset_h[i], \
                       dataset_r[i], \
                       dataset_t[i]

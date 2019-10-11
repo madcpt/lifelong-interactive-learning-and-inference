@@ -8,7 +8,7 @@ from utils.DataSampler import DataSampler
 from utils.draw import draw
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-sampler = DataSampler(device, dataset='WN18')
+sampler = DataSampler(device, dataset='FB15k')
 sampler.load_all()
 sampler.preprocess(1, init=False)
 sampler.setup_sampling_map()
@@ -26,12 +26,12 @@ print('valid_set: %d'%len(sampler.valid_triple))
 print('test_set: %d'%len(sampler.test_triple))
 
 
-entity_dim = 20
-load_previous = True
+entity_dim = 50
+load_previous = False
 
 model = TransE(device, entity_size=sampler.entity_size, 
                 rel_size=sampler.relation_size, 
-                embed_dim=entity_dim, dataset='WN18', margin=2)
+                embed_dim=entity_dim, dataset='FB15k', margin=2)
 
 model.set_ukn(ukn_rel)
 
