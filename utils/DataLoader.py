@@ -12,9 +12,9 @@ class DataLoader(object):
         self.test_path = './data/{}/test.txt'.format(dataset)
         self.entity_map_path = './data/{}/entity.map'.format(dataset)
         self.relation_map_path = './data/{}/relation.map'.format(dataset)
-        self.train_list = []
-        self.valid_list = []
-        self.test_list = []
+        self.train_list = [] # Will be deleted
+        self.valid_list = [] # Will be deleted
+        self.test_list = [] # Will be deleted
         self.entity_map = {}
         self.relation_map = {}
         self.entity_size = 0
@@ -28,24 +28,26 @@ class DataLoader(object):
         self.valid_triple_size = 0
         self.test_triple_size = 0
         
-
     def load_all(self):
+        self.train_list = []
         with open(self.train_path, 'r') as f:
             lines = f.readlines()
         self.train_list = [line.split() for line in lines]
         print('Trainset size: {}'.format(len(self.train_list)))
 
+        self.valid_list = []
         with open(self.valid_path, 'r') as f:
             lines = f.readlines()
         self.valid_list = [line.split() for line in lines]
         print('Validset size: {}'.format(len(self.valid_list)))
         
+        self.test_list = []
         with open(self.test_path, 'r') as f:
             lines = f.readlines()
         self.test_list = [line.split() for line in lines]
         print('Testset size: {}'.format(len(self.test_list)))
     
-    def counter_filter(self, raw_dataset, count=1):
+    def _counter_filter(self, raw_dataset, count=1):
         counter = collections.Counter([tk for tk in raw_dataset])
         counter = dict(filter(lambda x: x[1] >= count, counter.items()))
         return counter
@@ -85,8 +87,8 @@ class DataLoader(object):
             entity_list.append(triple[0])
             relation_list.append(triple[1])
             entity_list.append(triple[2])
-        entity_counter = self.counter_filter(entity_list, filter_occurance)
-        relation_counter = self.counter_filter(relation_list, 1)
+        entity_counter = self._counter_filter(entity_list, filter_occurance)
+        relation_counter = self._counter_filter(relation_list, 1)
         if init:
             for (i, entity) in enumerate(entity_counter.keys()):
                 self.entity_map[entity] = i
@@ -125,6 +127,11 @@ class DataLoader(object):
         self.valid_triple_size = len(self.valid_triple)
         self.test_triple_size = len(self.test_triple)
     
+    def del_raw_data(self):
+        del self.train_list
+        del self.valid_list
+        del self.test_list
+            
     def check_with_h_r(self, h, r, t):
         if self.head_relation_to_tail[r][h] != None and t in self.head_relation_to_tail[r][h]:
             return True
@@ -149,24 +156,24 @@ class DataLoader(object):
         else:
             return self.tail_relation_to_head[r][t]
     
-    def get_dataiter(self, mode='train', batch_size=10, shuffle=False, num_workers=0):
-        '''deprecated'''
-        if mode=='train':       
-            dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.train_triple], device=self.device), 
-                                        torch.tensor([i[1] for i in self.train_triple], device=self.device),
-                                        torch.tensor([i[2] for i in self.train_triple], device=self.device))
-            data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
-        if mode=='val':
-            dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.valid_triple], device=self.device), 
-                                        torch.tensor([i[1] for i in self.valid_triple], device=self.device),
-                                        torch.tensor([i[2] for i in self.valid_triple], device=self.device))
-            data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
-        if mode=='test':
-            dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.test_triple], device=self.device), 
-                                        torch.tensor([i[1] for i in self.test_triple], device=self.device),
-                                        torch.tensor([i[2] for i in self.test_triple], device=self.device))
-            data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
-        return data_iter
+    # def get_dataiter(self, mode='train', batch_size=10, shuffle=False, num_workers=0):
+    #     '''deprecated'''
+    #     if mode=='train':       
+    #         dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.train_triple], device=self.device), 
+    #                                     torch.tensor([i[1] for i in self.train_triple], device=self.device),
+    #                                     torch.tensor([i[2] for i in self.train_triple], device=self.device))
+    #         data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+    #     if mode=='val':
+    #         dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.valid_triple], device=self.device), 
+    #                                     torch.tensor([i[1] for i in self.valid_triple], device=self.device),
+    #                                     torch.tensor([i[2] for i in self.valid_triple], device=self.device))
+    #         data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    #     if mode=='test':
+    #         dataset = Data.TensorDataset(torch.tensor([i[0] for i in self.test_triple], device=self.device), 
+    #                                     torch.tensor([i[1] for i in self.test_triple], device=self.device),
+    #                                     torch.tensor([i[2] for i in self.test_triple], device=self.device))
+    #         data_iter = Data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    #     return data_iter
     
     def get_dataiter_(self, mode='train', batch_size=10, shuffle=False, num_workers=0):
         if mode == 'train':

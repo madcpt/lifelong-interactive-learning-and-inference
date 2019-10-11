@@ -28,6 +28,9 @@ class TransE(nn.Module):
         self.model_name = dataset+'_'+str(self.embed_dim)
         self.margin = margin
 
+    def set_ukn(self, ukn_rel):
+        self.model_name += '_'+str(ukn_rel)
+
     def normalize_layer(self, init = False):
         w1 = self.entity_embedding.weight.detach()
         self.entity_embedding.weight.data = w1/w1.norm(dim=-1, keepdim=True)
